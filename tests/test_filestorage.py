@@ -4,7 +4,7 @@ import unittest
 from indexer.base.storage import FileStorage
 
 
-class TestBase(unittest.TestCase):
+class TestFileStorageBase(unittest.TestCase):
 
     path = '/tmp/indexer/test.ix'
 
@@ -34,23 +34,53 @@ class TestBase(unittest.TestCase):
 
         f.close()
 
-    def test_performance_1(self):
+    def test_with(self):
+        with FileStorage(self.path) as fs:
+            fs.set('data', 0)
+            fs.commit()
+            data = fs.get(4, 0)
+            self.assertEqual('data', data)
+        self.assertEqual(True, fs.handler.closed)
+
+    def test_truncate(self):
+        with FileStorage(self.path) as fs:
+            fs.set('data', 0)
+            fs.commit()
+
+            fs.truncate()
+            fs.commit()
+            self.assertEqual(0, os.fstat(fs.handler.fileno()).st_size)
+
+    def test_yield(self):
+        with FileStorage(self.path) as fs:
+            data_list = ['data%02d' % i for i in xrange(10)]
+            for i, data in enumerate(data_list):
+                fs.set(data, i * len(data))
+
+            fs.commit()
+
+            result = []
+            for i in fs.read_from_end(6):
+                result.append(i)
+
+            result.reverse()
+            self.assertListEqual(data_list, result)
+
+    def _test_performance_1(self):
         data = 'test'
         times = 10 ** 5
-        f = FileStorage(self.path)
-        def test_wo_fsync():
-            f.set(data)
+        with FileStorage(self.path) as fs:
+            def test_wo_fsync():
+                fs.set(data)
 
-        result = timeit.timeit(test_wo_fsync, number=times)
+            result = timeit.timeit(test_wo_fsync, number=times)
 
-        self.assertLess(result, .2)
+            self.assertLess(result, .2)
 
-        def test_w_fsync():
-            f.set(data)
-            f.commit()
+            def test_w_fsync():
+                fs.set(data)
+                fs.commit()
 
-        result = timeit.timeit(test_w_fsync, number=times)
+            result = timeit.timeit(test_w_fsync, number=times)
 
-        self.assertLess(result, .4)
-
-        f.close()
+            self.assertLess(result, .5)

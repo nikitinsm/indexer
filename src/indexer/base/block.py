@@ -61,14 +61,24 @@ class BaseBlockModel(object):
 
     _data = None
 
-    def __init__(self, **kwargs):
+    def __init__(self, *args):
         self._data = OrderedDict()
-        for field_name, field in self._fields:
-            self._data[field_name] = kwargs.get(field_name, 0)
         super(BaseBlockModel, self).__init__()
+
+        #Fill with defaults
+        for field_name, field in self._fields:
+            setattr(self, field_name, field.default)
+
+        #Fill initial
+        for i, initial_value in enumerate(args):
+            field_name, field = self._fields[i]
+            setattr(self, field_name, initial_value)
 
     def __len__(self):
         return self._struct.size
+
+    def __eq__(self, other):
+        return self.values == other.values
 
     @property
     def values(self):
@@ -77,5 +87,18 @@ class BaseBlockModel(object):
     def pack(self, *values):
         return self._struct.pack(*(values or self.values))
 
-    def unpack(self, data):
-        return self._struct.unpack(data)
+    @classmethod
+    def unpack(cls, data):
+        return cls._struct.unpack(data)
+
+    @classmethod
+    def from_bytes(cls, bin_data):
+        result = cls()
+        result.load_bytes(bin_data)
+        return result
+
+    def load_bytes(self, bin_data):
+        data = self.unpack(bin_data)
+        for i, value in enumerate(data):
+            field_name, field = self._fields[i]
+            self._data[field_name] = value
