@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 
@@ -27,3 +28,7 @@ def node(identifier):
         return identifier
     raise Exception('Identifier does not exists')
 UUID = node
+
+
+def uuid_to_dt(u):
+    return datetime.datetime.fromtimestamp((u.time - 0x01b21dd213814000L)*100/1e9)

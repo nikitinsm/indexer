@@ -23,13 +23,25 @@ class BaseField(object):
     def from_bytes(value):
         return value
 
+    @property
+    def size(self):
+        return self.options[1] * (self.options[2] or 1)
+
 
 class CharArrayField(BaseField):
 
-    def __init__(self, length=1, default=0):
+    def __init__(self, length=1, default='\0'):
         self.options = ('s', 1, length)
         self.default = default
         super(CharArrayField, self).__init__()
+
+
+class CharField(BaseField):
+
+    def __init__(self, default=0):
+        self.options = ('c', 1, None)
+        self.default = default
+        super(CharField, self).__init__()
 
 
 class IntegerField(BaseField):

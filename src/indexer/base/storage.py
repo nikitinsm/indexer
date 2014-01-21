@@ -68,12 +68,12 @@ class FileStorage(BaseStorage):
     def delete(self):
         os.unlink(self.path)
 
-    def read_from_end(self, size=None, limit=None):
+    def read_from_end(self, size=None, limit=10):
         assert size > 0
 
         offset = size
 
-        while True:
+        while limit:
             try:
                 self.handler.seek(-offset, os.SEEK_END)
             except IOError:
@@ -81,7 +81,7 @@ class FileStorage(BaseStorage):
             result = self.handler.read(size)
             yield result
             offset += size
-            #limit -= 1
+            limit -= 1
 
     def find_from_end(self, block_size, col_offset=0, match_size=1, match=None, limit=10):
         skanned = 1

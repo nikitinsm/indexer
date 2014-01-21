@@ -1,10 +1,8 @@
 import os
-import profile
 import resource
 import time
 import unittest
 import random
-import mysql
 
 from collections import namedtuple
 from indexer.base import uuid_generator
@@ -50,12 +48,12 @@ class TestEventBase(unittest.TestCase):
     def create_uuids(self, num=1000, node='user', bytes=False):
         result = []
         for i in xrange(num):
-            result.append(uuid_generator.create(node).bytes)
+            result.append(bytes and uuid_generator.create(node).bytes or uuid_generator.create(node))
         return result
 
 
     def create_index(self, users=10000, posts=100000):
-        users = self.create_uuids(num=users, node='user')
+        users = self.create_uuids(num=users, node='user', bytes=True)
 
         index = self.index
 
@@ -63,7 +61,7 @@ class TestEventBase(unittest.TestCase):
 
         for i in xrange(posts):
             choosed_user = random.choice(users)
-            index.append(self.block_class(created_initial + i, choosed_user, uuid_generator.create('post')))
+            index.append(self.block_class(created_initial + i, choosed_user, uuid_generator.create('post').bytes, _bytes=True))
         index.storage.commit()
 
         return users, created_initial, created_initial + posts
@@ -109,14 +107,6 @@ class TestEventBase(unittest.TestCase):
 
         search()
 
-
-    def test_test_mysql(self):
-        mysql.connector.connect(user='uwsgi', database='nasimke_test')
-
-
-
-
-
     def _test_base(self):
         users, created_initial, created_destination = self.create_index()
 
@@ -139,18 +129,24 @@ class TestEventBase(unittest.TestCase):
                 i += 1
         print '%.6f' % (time.time() - start_time)
 
-    def _test_test1(self):
+    def test_test1(self):
         users, created_initial, created_destination = self.create_index()
 
         #get 10 users to find posts
         users_to_find = []
         for i in xrange(100):
-            users_to_find.append(random.choice(users).bytes)
+            users_to_find.append(random.choice(users))
 
         def search():
-            for skanned, b in self.index.storage.find_from_end(self.index.block_size, 8, 16, users_to_find, 10):
-                print skanned#, self.index.block_class.from_bytes(b).values
+            for scanned, b in self.index.storage.find_from_end(self.index.block_size, 8, 16, users_to_find, 10):
+                print scanned, self.index.block_class.from_bytes(b).values[0]
+            return scanned
 
-        p = profile.Profile()
-        p.runcall(search)
-        p.print_stats()
+        start_time = time.time()
+
+        print 'scan: %d' % search()
+        print 'search time: %.6f' % (time.time() - start_time)
+
+        # p = profile.Profile()
+        # p.runcall(search)
+        # p.print_stats()

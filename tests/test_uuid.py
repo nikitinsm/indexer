@@ -1,6 +1,6 @@
 import unittest
 from indexer.base import uuid_generator
-
+from indexer.base.uuid_generator import uuid_to_dt
 
 
 class TestUuidBase(unittest.TestCase):
@@ -25,3 +25,7 @@ class TestUuidBase(unittest.TestCase):
     def test_create(self):
         u = uuid_generator.create('user')
         self.assertEqual(u.node, 1)
+
+    def test_datetime(self):
+        u = uuid_generator.create('user')
+        print uuid_to_dt(u)

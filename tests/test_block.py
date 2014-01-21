@@ -37,6 +37,10 @@ class TestBlockBase(unittest.TestCase):
             , attributes
             )
 
+    def test_padding(self):
+        #TODO: dont't forget to check this shit against different OS
+        pass
+
     def test_block_set_get(self):
         block = self.block_class()
 

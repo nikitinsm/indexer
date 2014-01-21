@@ -60,7 +60,7 @@ class TestFileStorageBase(unittest.TestCase):
             fs.commit()
 
             result = []
-            for i in fs.read_from_end(6):
+            for i in fs.read_from_end(6, end=len(data_list)):
                 result.append(i)
 
             result.reverse()

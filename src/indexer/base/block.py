@@ -37,18 +37,33 @@ STRUCT_TYPES = \
 
 
 class BaseBlockModelMeta(type):
+
     def __new__(mcs, name, bases, attributes):
-        if name != 'BaseBlockModel':
+        result = type.__new__(mcs, name, bases, attributes)
+        if getattr(result, '_fields', None):
             format = ''
-            for field_name, field in attributes['_fields']:
-                field.name = field_name
-                attributes[field_name] = field
+            padding = 0
+            setattr(result, '_fields_by_name', dict())
+            for field_name, field in result._fields:
                 field_options = field.options
+                field.name = field_name
+
+                setattr(result, field_name, field)
+
+                result._fields_by_name[field_name] = field
+
+                #set padding by format
+                if format:
+                    padding = struct.Struct(format).size
+                field.padding = padding
+
+                #render format
                 if field_options[2]:
                     format += str(field_options[2])
                 format += field_options[0]
-            attributes['_struct'] = struct.Struct(format)
-        return type.__new__(mcs, name, bases, attributes)
+            result._struct = struct.Struct(format)
+        return result
+
 
 
 
@@ -56,12 +71,14 @@ class BaseBlockModel(object):
     __metaclass__ = BaseBlockModelMeta
 
     _fields = None
+    _fields_by_name = None
     _struct = None
     """@type: struct.Struct"""
 
     _data = None
 
-    def __init__(self, *args):
+    def __init__(self, *args, **kwargs):
+        bytes = kwargs.get('_bytes', False)
         self._data = OrderedDict()
         super(BaseBlockModel, self).__init__()
 
@@ -70,9 +87,14 @@ class BaseBlockModel(object):
             setattr(self, field_name, field.default)
 
         #Fill initial
-        for i, initial_value in enumerate(args):
-            field_name, field = self._fields[i]
-            setattr(self, field_name, initial_value)
+        if not bytes:
+            for i, initial_value in enumerate(args):
+                field_name, field = self._fields[i]
+                setattr(self, field_name, initial_value)
+        else:
+            for i, initial_value in enumerate(args):
+                field_name, field = self._fields[i]
+                self._data[field_name] = initial_value
 
     def __len__(self):
         return self._struct.size
@@ -102,3 +124,6 @@ class BaseBlockModel(object):
         for i, value in enumerate(data):
             field_name, field = self._fields[i]
             self._data[field_name] = value
+
+    def get_field(self, name):
+        return self._fields_by_name[name]

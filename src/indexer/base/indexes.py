@@ -1,6 +1,6 @@
 from indexer.base.exceptions import NotConfigured
 from indexer.base.fields import IntegerField
-from indexer.base.model import BaseBlockModel
+from indexer.base.block import BaseBlockModel
 from indexer.base.storage import BaseStorage
 
 
@@ -39,7 +39,7 @@ class InfiniteIndex(BaseIndex, BaseBlockModel):
         self.storage.set(block.pack(), self.block_offset + self.p_end * self.block_size)
         self.p_end += 1
         self.storage.set(self.pack(), 0)
-        #self.storage.commit()
+        self.storage.commit()
 
         return block_id
 
